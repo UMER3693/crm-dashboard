@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Realtor CRM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #eef2f7;
+            padding: 15px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        .box {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            width: 140px;
+        }
+
+        button {
+            padding: 8px 15px;
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        th {
+            background: #007bff;
+            color: white;
+        }
+
+        .edit {
+            background: #fff3cd;
+        }
+
+        @media (max-width: 768px) {
+            input, select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<h2>Realtor CRM Dashboard</h2>
+
+<div class="box">
+
+    <input id="name" placeholder="Name">
+    <input id="number" placeholder="Number">
+    <input id="email" placeholder="Email">
+    <input id="area" placeholder="Area">
+    <input id="state" placeholder="State">
+    <input id="miles" placeholder="Miles">
+
+    <select id="payment" onchange="toggleOther()">
+        <option value="">Payment</option>
+        <option>Paid</option>
+        <option>Unpaid</option>
+        <option>Partial Payment</option>
+        <option>Other</option>
+    </select>
+
+    <input id="otherPayment" placeholder="Custom Payment" style="display:none;">
+
+    <select id="plan">
+        <option value="">Plan</option>
+        <option>Premium</option>
+        <option>Standard</option>
+        <option>PPL</option>
+        <option>Basic</option>
+    </select>
+
+    <button onclick="addData()">Add</button>
+
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Number</th>
+            <th>Email</th>
+            <th>Area</th>
+            <th>State</th>
+            <th>Miles</th>
+            <th>Payment</th>
+            <th>Plan</th>
+            <th>Accepted</th>
+            <th>Rejected</th>
+            <th>On Hold</th>
+        </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+</table>
+
+<script>
+
+// 🔴 PASTE YOUR GOOGLE SCRIPT URL HERE
+const API_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+
+// Toggle "Other" Payment
+function toggleOther() {
+    let val = document.getElementById("payment").value;
+    document.getElementById("otherPayment").style.display =
+        val === "Other" ? "block" : "none";
+}
+
+// LOAD DATA (works on GitHub)
+async function loadData() {
+    try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+
+        let table = document.getElementById("tableBody");
+        table.innerHTML = "";
+
+        data.forEach((row, i) => {
+            table.innerHTML += `
+                <tr>
+                    <td>${row.Name || ""}</td>
+                    <td>${row.Number || ""}</td>
+                    <td>${row.Email || ""}</td>
+                    <td>${row.Area || ""}</td>
+                    <td>${row.State || ""}</td>
+                    <td>${row.Miles || ""}</td>
+                    <td>${row.Payment || ""}</td>
+                    <td>${row.Plan || ""}</td>
+
+                    <td contenteditable="true" class="edit"
+                        onblur="updateData(${i}, 'Accepted', this.innerText)">
+                        ${row.Accepted || ""}
+                    </td>
+
+                    <td contenteditable="true" class="edit"
+                        onblur="updateData(${i}, 'Rejected', this.innerText)">
+                        ${row.Rejected || ""}
+                    </td>
+
+                    <td contenteditable="true" class="edit"
+                        onblur="updateData(${i}, 'OnHold', this.innerText)">
+                        ${row.OnHold || ""}
+                    </td>
+                </tr>
+            `;
+        });
+
+    } catch (err) {
+        alert("Error loading data. Check API.");
+        console.error(err);
+    }
+}
+
+// ADD DATA
+async function addData() {
+
+    let payment = document.getElementById("payment").value;
+    if (payment === "Other") {
+        payment = document.getElementById("otherPayment").value;
+    }
+
+    let data = {
+        Name: document.getElementById("name").value,
+        Number: document.getElementById("number").value,
+        Email: document.getElementById("email").value,
+        Area: document.getElementById("area").value,
+        State: document.getElementById("state").value,
+        Miles: document.getElementById("miles").value,
+        Payment: payment,
+        Plan: document.getElementById("plan").value,
+        Accepted: "",
+        Rejected: "",
+        OnHold: ""
+    };
+
+    try {
+        await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+
+        alert("Saved Successfully ✅");
+        loadData();
+
+    } catch (err) {
+        alert("Error saving ❌");
+        console.error(err);
+    }
+}
+
+// UPDATE DATA
+async function updateData(index, field, value) {
+    try {
+        await fetch(API_URL + "?id=" + index, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ [field]: value })
+        });
+    } catch (err) {
+        console.error("Update failed", err);
+    }
+}
+
+// Load on start
+loadData();
+
+</script>
+
+</body>
+</html>
